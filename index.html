@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MadCalc: Калькулятор, который устал</title>
+    <style>
+        /* --- CSS: Душа и тело калькулятора (v4, финальная версия) --- */
+        
+        @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+
+        body {
+            background-color: #1a1a1a;
+            font-family: 'VT323', monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: #e0e0e0;
+            text-align: center;
+            padding: 20px;
+            box-sizing: border-box;
+            flex-direction: column;
+        }
+
+        .header-text h1 {
+            font-size: 3rem;
+            color: #ff4500;
+            text-shadow: 2px 2px #000;
+        }
+
+        .header-text p {
+            font-size: 1.5rem;
+            color: #c0c0c0;
+            margin-top: -10px;
+        }
+
+        .calculator {
+            background: linear-gradient(145deg, #4a4a4a, #2a2a2a);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 10px 10px 20px #000000a0, -10px -10px 20px #ffffff10;
+            width: 100%;
+            max-width: 380px;
+        }
+
+        .display {
+            background-color: #9ab99a;
+            color: #333;
+            border-radius: 10px;
+            padding: 10px 20px;
+            /* CRITICAL FIX: Уменьшен шрифт для единого вида текста и цифр */
+            font-size: 2.0rem; 
+            line-height: 1.2; /* FIX: Для корректного отображения многострочного текста */
+            text-align: right;
+            margin-bottom: 20px;
+            min-height: 70px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: flex-end;
+            word-wrap: break-word;
+            word-break: break-all;
+            box-shadow: inset 3px 3px 5px #00000050;
+        }
+
+        .buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+        }
+
+        button {
+            background: linear-gradient(145deg, #444, #333);
+            border: none;
+            border-radius: 10px;
+            font-size: 2rem;
+            color: #e0e0e0;
+            padding: 20px;
+            cursor: pointer;
+            box-shadow: 5px 5px 10px #00000080, -5px -5px 10px #ffffff1a;
+            transition: all 0.1s ease-in-out;
+            font-family: 'VT323', monospace;
+        }
+
+        button:active {
+            box-shadow: inset 5px 5px 10px #00000080, inset -5px -5px 10px #ffffff1a;
+            transform: translateY(2px);
+            font-size: 1.9rem;
+        }
+
+        .operator { background: linear-gradient(145deg, #666, #555); color: #ff9500; }
+        .clear { background: linear-gradient(145deg, #b03a2e, #872e24); color: #fff; grid-column: span 2; }
+        .equals { background: linear-gradient(145deg, #28a745, #218838); color: #fff; grid-column: span 2; }
+
+        .ad-placeholder {
+            margin-top: 30px;
+            padding: 20px;
+            border: 2px dashed #444;
+            border-radius: 10px;
+            color: #666;
+            font-size: 1.2rem;
+        }
+
+        @media (max-width: 480px) {
+            .header-text h1 { font-size: 2.2rem; }
+            .header-text p { font-size: 1.2rem; }
+            .calculator { padding: 15px; max-width: 100%; }
+            .display { font-size: 1.8rem; min-height: 60px; }
+            button { padding: 15px; font-size: 1.8rem; }
+            .buttons { gap: 10px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header-text">
+        <h1>MadCalc v6.6.9</h1>
+        <p>Он устал от ваших цифр. Точность — для слабаков.</p>
+    </div>
+
+    <div class="calculator">
+        <div class="display" id="display">0</div>
+        <div class="buttons">
+            <button class="number" value="7">7</button> <button class="number" value="8">8</button> <button class="number" value="9">9</button> <button class="operator" value="/">/</button>
+            <button class="number" value="4">4</button> <button class="number" value="5">5</button> <button class="number" value="6">6</button> <button class="operator" value="*">*</button>
+            <button class="number" value="1">1</button> <button class="number" value="2">2</button> <button class="number" value="3">3</button> <button class="operator" value="-">-</button>
+            <button class="number" value="0">0</button> <button class="dot" value=".">.</button> <button class="operator" value="+">+</button>
+            <button class="clear" id="clear">C</button>
+            <button class="equals" id="equals">=</button>
+        </div>
+    </div>
+    
+    <div class="ad-placeholder" id="ad-banner-1">
+        Здесь могла быть ваша реклама... <br> (Место для баннера Adsterra 300x250)
+    </div>
+
+    <script>
+        // --- JAVASCRIPT: Логика безумия (v3, отлаженная) ---
+        // Логическая часть стабильна, изменения не требуются.
+
+        const display = document.getElementById('display');
+        const buttons = document.querySelectorAll('.buttons button');
+        let isResultShown = false;
+
+        const specialCases = {
+            "2+2": "Рыба.", "1+1": "Окно.", "7*3": "21 грамм. Вес души.", "10/2": "5. Слишком просто.", "0/0": "Ты сломал вселенную.",
+            "8/4": "Два. На этот раз.", "1991": "Лучшие годы.", "2024": "Все сложно.", "666": "О, свой человек!",
+            "13": "Несчастливое число.", "42": "Главный ответ.", "3.14": "Почти Пи.", "100-1": "99 проблем."
+        };
+
+        const fallbackAnswers = [
+            "Зачем?", "Все бессмысленно.", "Сам считай.", "Ты серьезно?", "Опять работать...", "Ну и что дальше?", "Я калькулятор, а не гугл.",
+            "Гениально.", "Синий.", "Мяу.", "Ошибка 404: Логика не найдена.", "Время обедать.", "У меня мигрень.", "Дай отдохнуть.",
+            "Я устал, я ухожу.", "Мои транзисторы болят.", "Мне бы твои проблемы."
+        ];
+
+        function calculate() {
+            const userInput = display.innerText;
+            if (specialCases.hasOwnProperty(userInput)) {
+                display.innerText = specialCases[userInput];
+            } else {
+                if (Math.random() < 0.3) {
+                    const max = 999999999;
+                    const randomNumber = Math.floor(Math.random() * (2 * max + 1)) - max;
+                    display.innerText = randomNumber.toLocaleString('ru-RU');
+                } else {
+                    const randomIndex = Math.floor(Math.random() * fallbackAnswers.length);
+                    display.innerText = fallbackAnswers[randomIndex];
+                }
+            }
+            isResultShown = true;
+        }
+
+        function clearDisplay() {
+            display.innerText = '0';
+            isResultShown = false;
+        }
+
+        buttons.forEach(button => {
+            button.addEventListener('click', () => {
+                const value = button.value;
+                const lastChar = display.innerText.slice(-1);
+
+                if (button.id === 'clear') { clearDisplay(); return; }
+
+                if (button.id === 'equals') {
+                    if (!isResultShown && display.innerText !== '0' && !'/*-+'.includes(lastChar)) {
+                        calculate();
+                    }
+                    return;
+                }
+
+                if (button.classList.contains('operator')) {
+                    if ('/*-+'.includes(lastChar)) { return; }
+                }
+
+                if (button.classList.contains('dot')) {
+                    if (display.innerText.includes('.')) { return; }
+                }
+                
+                if (display.innerText === '0' || isResultShown) {
+                    if (('/*+').includes(value) || value === '.') { return; }
+                    display.innerText = value;
+                    isResultShown = false;
+                } else {
+                    if (display.innerText.length < 15) {
+                        display.innerText += value;
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>
